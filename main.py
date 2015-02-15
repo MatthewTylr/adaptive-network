@@ -25,19 +25,9 @@ from time import strftime, localtime
 import argparse
 import configparser
 
-# Description: Random Event Function
-# I: Probability of Something Happening.
-# O: Returns one if true, 0 is false.
 def chance(x):
-    chance_set = [0]*100
-    chance_add = int(numpy.ceil(x*100))
-    chance_num = numpy.floor(numpy.random.uniform(0,100,chance_add))
-    for a in range(0,chance_add):
-        apply_num = int(chance_num[a])
-        chance_set[apply_num] = 1
-    chance_return_num = numpy.floor(numpy.random.uniform(0,100,1))
-    chance_return = chance_set[int(chance_return_num)]
-    return chance_return
+    
+
 
 # Description: Main Function
 def main():
@@ -69,6 +59,7 @@ def main():
     rpop = int(config['classes']['rpop'])
     restrict = int(config['restrictions']['restrict'])
     delay = int(config['restrictions']['delay'])
+    discovery = int(config['restrictions']['discovery'])
 
     # Create Network------------------------------------------------------------
 
@@ -83,6 +74,7 @@ def main():
     # Seed Network with Susceptible
     for a in net.nodes():
         net.node[a]['state'] = 'S'
+        net.node[a]['count'] = 0
     # If Infectious is Greater than 1
     sample = numpy.floor(numpy.random.uniform(0,(spop+ipop+rpop),(ipop)))
     for a in sample:
@@ -98,29 +90,32 @@ def main():
 
     for a in range(0,time):
 
-        # Individuals Become Infectious
+        # Individuals Become Infectious (Unknown)
 
         for b in net.nodes():
 
-            if net.node[b]['state'] == 'I':
+            if net.node[b]['state'] == 'U':
+                net.node[b]['count'] += 1
+
+            if net.node[b]['state'] == 'U' or net.node[b]['state'] == 'I':
                 neighbors = net.neighbors(b)
 
                 for d in range(0,len(neighbors)):
                     specific_neighbor = neighbors[d]
                     get_sick = chance(beta)
 
-                    if net.node[specific_neighbor]['state'] == 'R':
-                        get_sick = 0
-
-                    if get_sick == 1:
-                        net.node[specific_neighbor]['state'] = 'I'
+                    if net.node[specific_neighbor]['state'] == 'S' and get_sick == 1:
+                        net.node[specific neighbor]['state'] = 'U'
 
 
-        # Individuals Recover
+        # Individuals are Recognized as Infectious
 
-        for b in net.nodes():
+            if net.node[b]['state'] == 'U' and net.node[b]['count'] == discovery:
+                net.node[b]['state'] = 'I'
 
-            if net.node[b]['state'] == 'I':
+        # Infectious Recover
+
+            if net.node[b]['state'] == 'U' or net.node[b]['state'] == 'I':
                 recover = chance(gamma)
 
                 if recover == 1:
@@ -128,13 +123,18 @@ def main():
 
         # Count and Display
         num_s = 0
+        num_u = 0
         num_i = 0
         num_r = 0
+
         for b in net.nodes():
             state = net.node[b]['state']
 
             if state == 'S':
                 num_s += 1
+
+            if state == 'U':
+                num_u += 1
 
             if state == 'I':
                 num_i += 1
@@ -142,14 +142,13 @@ def main():
             if state == 'R':
                 num_r += 1
 
-        print("Timestep = {0}, S = {1}, I = {2}, R = {3}".format(a,num_s,num_i,num_r))
+        print("Timestep = {0}, S = {1}, U = {2}, I = {3}, R = {4}".format(a,num_s,num_u,num_i,num_r))
 
         # Commit Data For Timestep to Dataset
-        timeset_data = "{0}, {1}, {2}, {3}".format(a, num_s, num_i, num_r)
+        timeset_data = "{0}, {1}, {2}, {3}, {4}".format(a, num_s, num_u, num_i, num_r)
         data_file.write(timeset_data + "\n")
 
-
-        if num_i == 0:
+        if num_u == 0 and num_i == 0:
             break
 
 if __name__ == "__main__":
