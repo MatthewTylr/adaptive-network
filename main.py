@@ -7,7 +7,7 @@ Usage: main.py <configuration file> <additional flags>
 """
 # Title: main.py
 # Author: Matthew Taylor (matthewtylr@gmail.com)
-# Version: 0.1
+# Version: 0.2
 
 # Load Appropriate Libraries ---------------------------------------------------
 
@@ -26,8 +26,15 @@ import argparse
 import configparser
 
 def chance(x):
-    
-
+    chance_set = [0]*100
+    chance_add = int(numpy.ceil(x*100))
+    chance_num = numpy.floor(random.sample(range(100),chance_add))
+    for a in range(0,chance_add):
+        apply_num = int(chance_num[a])
+        chance_set[apply_num] = 1
+    chance_return_num = numpy.floor(numpy.random.uniform(0,100,1))
+    chance_return = chance_set[int(chance_return_num)]
+    return chance_return
 
 # Description: Main Function
 def main():
@@ -105,12 +112,12 @@ def main():
                     get_sick = chance(beta)
 
                     if net.node[specific_neighbor]['state'] == 'S' and get_sick == 1:
-                        net.node[specific neighbor]['state'] = 'U'
+                        net.node[specific_neighbor]['state'] = 'U'
 
 
         # Individuals are Recognized as Infectious
 
-            if net.node[b]['state'] == 'U' and net.node[b]['count'] == discovery:
+            if net.node[b]['state'] == 'U' and net.node[b]['count'] >= discovery:
                 net.node[b]['state'] = 'I'
 
         # Infectious Recover
