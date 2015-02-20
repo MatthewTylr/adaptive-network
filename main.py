@@ -7,7 +7,8 @@ Usage: main.py <configuration file> <additional flags>
 """
 # Title: main.py
 # Author: Matthew Taylor (matthewtylr@gmail.com)
-# Version: 0.2
+# Version: 0.2.1
+# Attemped implementation of Algorithm.
 
 # Load Appropriate Libraries ---------------------------------------------------
 
@@ -24,6 +25,7 @@ import numpy
 from time import strftime, localtime
 import argparse
 import configparser
+import collections
 
 def chance(x):
     chance_set = [0]*100
@@ -34,6 +36,8 @@ def chance(x):
         chance_set[apply_num] = 1
     chance_return_num = numpy.floor(numpy.random.uniform(0,100,1))
     chance_return = chance_set[int(chance_return_num)]
+    if x == 1:
+        chance_return = 1
     return chance_return
 
 # Description: Main Function
@@ -47,6 +51,10 @@ def main():
     parser.add_argument("--meta", help="Prints Node and Edge Info",
                                 action="store_true")
     parser.add_argument("--display", help="Display Network Model",
+                                action="store_true")
+    parser.add_argument("--run", help="Runs Algorithm",
+                                action="store_true")
+    parser.add_argument("--debug", help="Output Calculations",
                                 action="store_true")
     args=parser.parse_args()
 
@@ -91,7 +99,7 @@ def main():
 
     current_time = strftime("%Y-%m-%d-%H-%M-%S", localtime())
     data_file = open("SIR_{0}.csv".format(current_time),"w")
-    data_file.write("timestep, s, i, r\n")
+    data_file.write("timestep, s, u, i, r\n")
 
     # Simulation----------------------------------------------------------------
 
@@ -100,9 +108,6 @@ def main():
         # Individuals Become Infectious (Unknown)
 
         for b in net.nodes():
-
-            if net.node[b]['state'] == 'U':
-                net.node[b]['count'] += 1
 
             if net.node[b]['state'] == 'U' or net.node[b]['state'] == 'I':
                 neighbors = net.neighbors(b)
@@ -114,19 +119,77 @@ def main():
                     if net.node[specific_neighbor]['state'] == 'S' and get_sick == 1:
                         net.node[specific_neighbor]['state'] = 'U'
 
-
-        # Individuals are Recognized as Infectious
-
-            if net.node[b]['state'] == 'U' and net.node[b]['count'] >= discovery:
-                net.node[b]['state'] = 'I'
-
-        # Infectious Recover
+            # Infectious Recover
 
             if net.node[b]['state'] == 'U' or net.node[b]['state'] == 'I':
                 recover = chance(gamma)
 
                 if recover == 1:
                     net.node[b]['state'] = 'R'
+
+        for b in net.nodes():
+
+            if net.node[b]['state'] == 'U':
+                net.node[b]['count'] += 1
+
+            # Individuals are Recognized as Infectious
+
+            if net.node[b]['state'] == 'U' and net.node[b]['count'] >= discovery:
+                net.node[b]['state'] = 'I'
+
+        # Algorithm --------------------------------------------------------------------------------
+
+        if args.run:
+
+            # Lists for Targets
+            target_inf = []
+            target_nei = []
+            target_edges = []
+
+            # Build Info List
+            for c in net.nodes():
+
+                # INF + Neighbors
+                if net.node[c]['state'] == 'I':
+                    target_inf.append(c)
+                    target_nei.append(net.neighbors(c))
+
+            target_edges = net.edges(target_inf)
+
+            if restrict == 0:
+                net.remove_edges_from(target_edges)
+
+            else:
+
+                # Calculate Edge Betweenness
+                edge_betweenness = nx.edge_betweenness_centrality(net)
+
+                # Populate Edge Library
+                edge_lib = {}
+
+                for d in net.edges():
+                    edge_lib[d] = {}
+                    edge_lib[d]['infe'] = 0
+                    edge_lib[d]['betw'] = edge_betweenness[d]
+
+                for d in target_edges:
+                    d_dict_temp = d in edge_lib.keys()
+                    if d_dict_temp is True:
+                        edge_lib[d]['infe'] = 1
+                    else:
+                        vert1 = d[1]
+                        vert2 = d[0]
+                        new_vert = (vert1, vert2)
+                        edge_lib[new_vert] = 1
+
+                # Sort That Lib!
+                edge_lib_sort = collections.OrderedDict(sorted(edge_lib.items(), key=lambda x: x[0]))
+
+                print(edge_lib_sort[1:5])
+
+
+
+        # ------------------------------------------------------------------------------------------
 
         # Count and Display
         num_s = 0
@@ -150,6 +213,9 @@ def main():
                 num_r += 1
 
         print("Timestep = {0}, S = {1}, U = {2}, I = {3}, R = {4}".format(a,num_s,num_u,num_i,num_r))
+
+        if args.debug:
+            print("NERPT =",len(target_edges),"NERPT% =",len(target_edges)/len(net.edges()))
 
         # Commit Data For Timestep to Dataset
         timeset_data = "{0}, {1}, {2}, {3}, {4}".format(a, num_s, num_u, num_i, num_r)
