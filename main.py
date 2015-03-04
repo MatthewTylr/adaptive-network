@@ -7,8 +7,9 @@ Usage: main.py <configuration file> <additional flags>
 """
 # Title: main.py
 # Author: Matthew Taylor (matthewtylr@gmail.com)
-# Version: 0.2.1
-# Attemped implementation of Algorithm.
+# Version: 0.2.2
+# Version Description:
+# Working Adaptive and PRER Methods Based on Betweenness.
 
 # Load Appropriate Libraries ---------------------------------------------------
 
@@ -54,6 +55,8 @@ def main():
                                 action="store_true")
     parser.add_argument("--run", help="Runs Algorithm",
                                 action="store_true")
+    parser.add_argument("--prermode", help="Mode for initial edge removal.",
+                                action="store_true")
     parser.add_argument("--debug", help="Output Calculations",
                                 action="store_true")
     args=parser.parse_args()
@@ -75,6 +78,7 @@ def main():
     restrict = int(config['restrictions']['restrict'])
     delay = int(config['restrictions']['delay'])
     discovery = int(config['restrictions']['discovery'])
+    prer = float(config['prersettings']['prer'])
 
     # Create Network------------------------------------------------------------
 
@@ -94,6 +98,15 @@ def main():
     sample = numpy.floor(numpy.random.uniform(0,(spop+ipop+rpop),(ipop)))
     for a in sample:
         net.node[a]['state'] = 'I'
+
+    # Pre-Run Edge Removal
+    if args.prermode:
+        total_edge_count = len(net.edges())
+        edge_betweenness = nx.edge_betweenness_centrality(net)
+        edge_betweenness_sort = sorted(edge_betweenness.items(), key=operator.itemgetter(1), reverse = True)
+        # Remove Those Edges!
+        for a in range(0,int(numpy.floor(total_edge_count*prer))):
+            net.remove_edge(edge_betweenness_sort[a][0][0],edge_betweenness_sort[a][0][1])
 
     # Create Data File ---------------------------------------------------------
 
@@ -161,32 +174,33 @@ def main():
 
             else:
 
+                print("Running Algorithm")
+
                 # Calculate Edge Betweenness
                 edge_betweenness = nx.edge_betweenness_centrality(net)
 
-                # Populate Edge Library
-                edge_lib = {}
+                # Create a Dictionary of Metrics
+                edge_dict = {}
 
-                for d in net.edges():
-                    edge_lib[d] = {}
-                    edge_lib[d]['infe'] = 0
-                    edge_lib[d]['betw'] = edge_betweenness[d]
+                for d in edge_betweenness:
 
-                for d in target_edges:
-                    d_dict_temp = d in edge_lib.keys()
-                    if d_dict_temp is True:
-                        edge_lib[d]['infe'] = 1
+                    target_edge_pos_id = 0
+
+                    for e in target_edges:
+                        if d == e:
+                            target_edge_pos_id = 1
+
+                    if target_edge_pos_id == 1:
+                        edge_dict[d] = 1, edge_betweenness[d]
                     else:
-                        vert1 = d[1]
-                        vert2 = d[0]
-                        new_vert = (vert1, vert2)
-                        edge_lib[new_vert] = 1
+                        edge_dict[d] = 0, edge_betweenness[d]
 
-                # Sort That Lib!
-                edge_lib_sort = collections.OrderedDict(sorted(edge_lib.items(), key=lambda x: x[0]))
+                # Sort Dictionary
+                edge_dict_sort = sorted(edge_dict.items(), key=operator.itemgetter(1), reverse = True)
 
-                print(edge_lib_sort[1:5])
-
+                # Remove Edges
+                for d in range(0,restrict):
+                    net.remove_edge(edge_dict_sort[d][0][0],edge_dict_sort[d][0][1])
 
 
         # ------------------------------------------------------------------------------------------
