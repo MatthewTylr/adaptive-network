@@ -102,7 +102,7 @@ def main():
     # Pre-Run Edge Removal
     if args.prermode:
         total_edge_count = len(net.edges())
-        edge_betweenness = nx.edge_betweenness_centrality(net)
+        edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
         edge_betweenness_sort = sorted(edge_betweenness.items(), key=operator.itemgetter(1), reverse = True)
         # Remove Those Edges!
         for a in range(0,int(numpy.floor(total_edge_count*prer))):
@@ -117,6 +117,20 @@ def main():
     # Simulation----------------------------------------------------------------
 
     for a in range(0,time):
+
+        # PRER MODE EDGE EVALUATION
+
+        if args.prermode:
+
+            print("Evaluating Edge Betweenness")
+
+            mean_bet = 0
+            edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
+
+            for c in edge_betweenness:
+                mean_bet += edge_betweenness[c]
+
+            mean_bet = mean_bet/len(net.nodes())
 
         # Individuals Become Infectious (Unknown)
 
