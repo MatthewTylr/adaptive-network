@@ -112,7 +112,7 @@ def main():
 
     current_time = strftime("%Y-%m-%d-%H-%M-%S", localtime())
     data_file = open("SIR_{0}.csv".format(current_time),"w")
-    data_file.write("timestep, s, u, i, r, mbet\n")
+    data_file.write("timestep, s, u, i, r\n")
 
     # Simulation----------------------------------------------------------------
 
@@ -179,18 +179,12 @@ def main():
                 # Calculate Edge Betweenness
                 edge_betweenness = nx.edge_betweenness_centrality(net)
 
-                # Create Mean Betweenness Counter
-
-                mean_bet = 0
-
                 # Create a Dictionary of Metrics
                 edge_dict = {}
 
                 for d in edge_betweenness:
 
                     target_edge_pos_id = 0
-
-                    mean_bet += edge_betweenness[d]
 
                     for e in target_edges:
                         if d == e:
@@ -201,19 +195,12 @@ def main():
                     else:
                         edge_dict[d] = 0, edge_betweenness[d]
 
-
-
                 # Sort Dictionary
                 edge_dict_sort = sorted(edge_dict.items(), key=operator.itemgetter(1), reverse = True)
-
-                # Calculate Mean Betweenness
-
-                mean_bet = mean_bet/len(net.nodes())
 
                 # Remove Edges
                 for d in range(0,restrict):
                     net.remove_edge(edge_dict_sort[d][0][0],edge_dict_sort[d][0][1])
-
 
 
         # ------------------------------------------------------------------------------------------
@@ -239,13 +226,13 @@ def main():
             if state == 'R':
                 num_r += 1
 
-        print("Timestep = {0}, S = {1}, U = {2}, I = {3}, R = {4}, MBET = {5}".format(a,num_s,num_u,num_i,num_r,mean_bet))
+        print("Timestep = {0}, S = {1}, U = {2}, I = {3}, R = {4}".format(a,num_s,num_u,num_i,num_r))
 
         if args.debug:
             print("TEI =",len(target_edges),"TEITE% =",len(target_edges)/len(net.edges()))
 
         # Commit Data For Timestep to Dataset
-        timeset_data = "{0}, {1}, {2}, {3}, {4}, {5}".format(a, num_s, num_u, num_i, num_r, mean_bet)
+        timeset_data = "{0}, {1}, {2}, {3}, {4}".format(a, num_s, num_u, num_i, num_r)
         data_file.write(timeset_data + "\n")
 
         if num_u == 0 and num_i == 0:
