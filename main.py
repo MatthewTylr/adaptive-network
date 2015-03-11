@@ -7,9 +7,9 @@ Usage: main.py <configuration file> <additional flags>
 """
 # Title: main.py
 # Author: Matthew Taylor (matthewtylr@gmail.com)
-# Version: 0.2.2
+# Version: 0.3.0
 # Version Description:
-# Working Adaptive and PRER Methods Based on Betweenness.
+# Ability to choose between EB and RWEB methods.
 
 # Load Appropriate Libraries ---------------------------------------------------
 
@@ -47,17 +47,17 @@ def main():
     parser = argparse.ArgumentParser(description="Simulator Restrictions")
     parser.add_argument('configPath', metavar='config',
                         help="the path to the simulation configuration file.")
-    parser.add_argument("--DC", help="Displays Calculations Made for Each Step",
-                                action="store_true")
-    parser.add_argument("--meta", help="Prints Node and Edge Info",
-                                action="store_true")
-    parser.add_argument("--display", help="Display Network Model",
+    parser.add_argument("--display", help="Display network model",
                                 action="store_true")
     parser.add_argument("--run", help="Runs Algorithm",
                                 action="store_true")
+    parser.add_argument("--ring", help="Targets individuals next to infected.",
+                                action="store_true")
     parser.add_argument("--prermode", help="Mode for initial edge removal.",
                                 action="store_true")
-    parser.add_argument("--debug", help="Output Calculations",
+    parser.add_argument("--b", help="Sort by Edge Betweenness Centrality.",
+                                action="store_true")
+    parser.add_argument("--bflow", help="Sort by Edge Current Flow Betweenness Centrality.",
                                 action="store_true")
     args=parser.parse_args()
 
@@ -102,7 +102,10 @@ def main():
     # Pre-Run Edge Removal
     if args.prermode:
         total_edge_count = len(net.edges())
-        edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
+        if args.bflow:
+            edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
+        if args.b:
+            edge_betweenness = nx.edge_betweenness_centrality(net)
         edge_betweenness_sort = sorted(edge_betweenness.items(), key=operator.itemgetter(1), reverse = True)
         # Remove Those Edges!
         for a in range(0,int(numpy.floor(total_edge_count*prer))):
@@ -183,7 +186,10 @@ def main():
                 print("Running Algorithm")
 
                 # Calculate Edge Betweenness
-                edge_betweenness = nx.edge_betweenness_centrality(net)
+                if args.bflow:
+                    edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
+                if args.b:
+                    edge_betweenness = nx.edge_betweenness_centrality(net)
 
                 # Create Mean Betweenness Counter
 
@@ -203,7 +209,11 @@ def main():
                             target_edge_pos_id = 1
 
                     if target_edge_pos_id == 1:
-                        edge_dict[d] = 1, edge_betweenness[d]
+
+                        if args.ring:
+                            edge_dict[d] = 1, edge_betweenness[d]
+                        else:
+                            edge_dict[d] = 0, edge_betweenness[d]
                     else:
                         edge_dict[d] = 0, edge_betweenness[d]
 
@@ -245,10 +255,7 @@ def main():
             if state == 'R':
                 num_r += 1
 
-        print("Timestep = {0}, S = {1}, U = {2}, I = {3}, R = {4}, MBET = {5}".format(a,num_s,num_u,num_i,num_r,mean_bet))
-
-        if args.debug:
-            print("TEI =",len(target_edges),"TEITE% =",len(target_edges)/len(net.edges()))
+        print("Timestep = {0}, S = {1}, U = {2}, I = {3}, R = {4}, MeanBET = {5}".format(a,num_s,num_u,num_i,num_r,mean_bet))
 
         # Commit Data For Timestep to Dataset
         timeset_data = "{0}, {1}, {2}, {3}, {4}, {5}".format(a, num_s, num_u, num_i, num_r, mean_bet)
