@@ -122,15 +122,7 @@ def main():
 
         if args.prermode:
 
-            print("Evaluating Edge Betweenness")
-
             mean_bet = 0
-            edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
-
-            for c in edge_betweenness:
-                mean_bet += edge_betweenness[c]
-
-            mean_bet = mean_bet/len(net.nodes())
 
         # Individuals Become Infectious (Unknown)
 
