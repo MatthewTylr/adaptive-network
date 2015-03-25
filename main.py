@@ -101,6 +101,7 @@ def main():
 
     # Pre-Run Edge Removal
     if args.prermode:
+        print("PRER Mode Initialized.")
         total_edge_count = len(net.edges())
         if args.bflow:
             edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
@@ -108,8 +109,10 @@ def main():
             edge_betweenness = nx.edge_betweenness_centrality(net)
         edge_betweenness_sort = sorted(edge_betweenness.items(), key=operator.itemgetter(1), reverse = True)
         # Remove Those Edges!
+        print("Beginning Edge Removal.")
         for a in range(0,int(numpy.floor(total_edge_count*prer))):
             net.remove_edge(edge_betweenness_sort[a][0][0],edge_betweenness_sort[a][0][1])
+        print("[COMPLETE] ... Simulation Commencing.")
 
     # Create Data File ---------------------------------------------------------
 
@@ -187,7 +190,11 @@ def main():
 
                 # Calculate Edge Betweenness
                 if args.bflow:
-                    edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
+                    if nx.is_connected(net) == True:
+                        edge_betweenness = nx.edge_current_flow_betweenness_centrality(net)
+                    else:
+                        edge_betweenness = nx.edge_betweenness_centrality(net)
+
                 if args.b:
                     edge_betweenness = nx.edge_betweenness_centrality(net)
 
